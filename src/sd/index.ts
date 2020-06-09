@@ -1,5 +1,8 @@
 import "isomorphic-fetch";
 import bonjour, { Service, Browser } from "bonjour";
+import groupBy from "@newdash/newdash-node/groupBy";
+import process from "process";
+import { hostname } from "os";
 
 interface MicroServiceOptions {
     application: string;
@@ -12,10 +15,10 @@ export class MicroService {
 
     constructor({ application, service, port, version = "default" }: MicroServiceOptions) {
         this._service = bonjour().publish({
-            name: service,
+            name: `${application}-${service}-${hostname}-${port}-${process.pid}`,
             type: application,
             port: port,
-            txt: { version }
+            txt: { version, service }
         });
     }
 
@@ -40,8 +43,24 @@ export class Discover {
 
     private _discover: Browser;
 
+    private _serviceCount = new Map()
+
+    /**
+     * 
+     * get service 
+     * 
+     * round trip
+     * 
+     * @param serviceName 
+     */
     private getOneService(serviceName: string): Service {
-        return this._discover.services.find(s => s.name == serviceName);
+        const c = this._serviceCount.get(serviceName) || 0;
+        const services = groupBy(this._discover.services, 'txt.service');
+        const instances = services[serviceName];
+        this._serviceCount.set(serviceName, c + 1);
+        if (instances && instances.length > 0) {
+            return instances[c % instances.length];
+        }
     }
 
     public async invoke(serviceName: string, path: string, init?: RequestInit): Promise<Response> {
