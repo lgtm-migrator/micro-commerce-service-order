@@ -1,9 +1,8 @@
-import { a } from ".";
 
-describe('Test Suite', () => {
+describe('Demo Test Suite', () => {
 
-    it('should equal to 1', () => {
-        expect(a).toBe(1);
+    it('should equal to true', () => {
+        expect(true).toBeTruthy();
     });
 
 });
